@@ -1,4 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import bcrypt from 'bcryptjs';
 import { Document } from 'mongoose';
 
 export type UserDocument = User & Document; // &是交叉运算符 把 User 和 Document 两个类型的成员合并成一个新类型 UserDocument。
@@ -101,3 +102,23 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+//保存前加密
+UserSchema.pre('save', async function () {
+  // 一个钩子
+  if (!this.isModified('password')) {
+    return;
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  if (this.password) {
+    this.password = await bcrypt.hash(this.password, salt);
+  }
+});
+
+//添加比较密码的方法
+UserSchema.methods.comparePassword = async function (
+  candidatePassword: string,
+) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};

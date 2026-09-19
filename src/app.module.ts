@@ -4,6 +4,9 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { UserController } from './user/user.controller.js';
 import { UserService } from './user/user.service.js';
+import { UserModule } from './user/user.module.js';
+import { MongooseModule } from '@nestjs/mongoose';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -15,6 +18,16 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       appKey: 'YOUR_APP_KEY',
       appSecret: 'YOUR_APP_SECRET',
       serviceId: 'mm-server',
+    }),
+    UserModule,
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (ConfigService: ConfigService) => ({
+        uri:
+          ConfigService.get<string>('MONGODB_URI') ||
+          'mongodb://localhost:27017/wwzhidao',
+      }),
+      inject: [ConfigService],
     }),
   ],
   controllers: [AppController, UserController],
