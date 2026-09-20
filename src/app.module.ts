@@ -7,11 +7,16 @@ import { UserService } from './user/user.service.js';
 import { UserModule } from './user/user.module.js';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
+import type { SignOptions } from 'jsonwebtoken';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     // Distributed tracing, auto-correlated logs, request/job metrics, error
     // telemetry, alarms, and more — out of the box. Sign up at https://observe.nestjs.com
     ObserveModule.forRoot({
@@ -22,12 +27,27 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     UserModule,
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (ConfigService: ConfigService) => ({
+      useFactory: async (configService: ConfigService) => ({
         uri:
-          ConfigService.get<string>('MONGODB_URI') ||
+          configService.get<string>('MONGODB_URI') ||
           'mongodb://localhost:27017/wwzhidao',
       }),
       inject: [ConfigService],
+    }),
+    //配置JWT
+    JwtModule.registerAsync({
+      useFactory: async (configService: ConfigService) => {
+        return {
+          secret:
+            configService.get<string>('JWT_SECRET') || 'wwzhidao-secret-key',
+          signOptions: {
+            expiresIn: (configService.get<string>('JWT_EXPIRATION') ||
+              '7d') as SignOptions['expiresIn'], //过期时间 7天
+          },
+        };
+      },
+      inject: [ConfigService],
+      global: true, //全局模块
     }),
   ],
   controllers: [AppController, UserController],
